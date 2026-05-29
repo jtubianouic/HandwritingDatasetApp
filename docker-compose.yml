@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  handwriting-app:
+    build: .
+    container_name: handwriting-app
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
