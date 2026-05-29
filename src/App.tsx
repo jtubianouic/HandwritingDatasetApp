@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 const WIDTH = 800;
 const HEIGHT = 96;
@@ -17,54 +18,19 @@ interface Person {
   transcripts: Transcript[];
 }
 
-const initialPeople: Person[] = [
-  {
-    id: 1,
-    name: 'John Doe',
-    transcripts: [
-      {
-        id: 1,
-        text: 'The quick brown fox jumps over the lazy dog.',
-      },
-      {
-        id: 2,
-        text: 'Artificial intelligence improves handwriting recognition.',
-      },
-      {
-        id: 3,
-        text: 'Data collection is important for machine learning.',
-      },
-    ],
-  },
-
-  {
-    id: 2,
-    name: 'Jane Smith',
-    transcripts: [
-      {
-        id: 1,
-        text: 'Handwriting samples help improve OCR systems.',
-      },
-      {
-        id: 2,
-        text: 'Neural networks require quality datasets.',
-      },
-    ],
-  },
-
-  {
-    id: 3,
-    name: 'Michael Cruz',
-    transcripts: [],
-  },
-];
+const BASE_URL = 'https://wf.argsexp.org/webhook';
 
 const App: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [people, setPeople] = useState<Person[]>(initialPeople);
+  const [people, setPeople] = useState<Person[]>([]);
 
+  useEffect(() => {
+    fetch(`${BASE_URL}/transcript-list`).then((res) => res.json()).then((data) => {
+      setPeople(data);
+    })
+  }, [])
   const [selectedPersonId, setSelectedPersonId] =
     useState<number | null>(null);
 
@@ -191,6 +157,28 @@ const App: React.FC = () => {
     )
       return;
 
+    fetch(`${BASE_URL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personId: selectedPerson.id,
+        transcriptId: currentTranscript.id,
+        transcript: currentTranscript.text,
+        assignee: selectedPerson.name,
+        image: capturePreview,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        toast.success('Upload successful!');
+      } else {
+        toast.error('Upload failed.');
+      }
+    }).catch(() => {
+      toast.error('Upload failed.');
+    });
+
     setPeople((prev) =>
       prev.map((person) => {
         if (person.id !== selectedPerson.id) return person;
@@ -220,7 +208,7 @@ const App: React.FC = () => {
       pendingTranscripts.length - 1;
 
     if (remaining <= 0) {
-      alert('All transcripts submitted.');
+      toast.success('All transcripts submitted.')
 
       setSelectedPersonId(null);
     }
@@ -236,11 +224,11 @@ const App: React.FC = () => {
         <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
 
           <h1 className="text-4xl font-bold mb-3">
-            Select Participant
+            Handwritten Image Training Dataset
           </h1>
 
           <p className="text-slate-400 mb-8">
-            Choose your participant profile.
+            Choose your trainer profile.
           </p>
 
           <div className="space-y-4">
@@ -321,7 +309,7 @@ const App: React.FC = () => {
             </h1>
 
             <p className="text-slate-400 mt-2">
-              Participant: {selectedPerson?.name}
+              Trainer: {selectedPerson?.name}
             </p>
           </div>
 
@@ -332,7 +320,7 @@ const App: React.FC = () => {
             }}
             className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition"
           >
-            Change Participant
+            Change Trainer
           </button>
         </div>
 
